@@ -578,7 +578,6 @@ run_conv_cscale_cbias_relu(int64_t* x_dim,
                            at::Half* devPtrS,
                            at::Half* devPtrB,
                            at::Half* devPtrY,
-                           at::Half* devPtrZ,
                            bool* devPtrYMask) {
 
     cudnnHandle_t handle_ = torch::native::getCudnnHandle();
@@ -684,7 +683,9 @@ run_conv_cscale_cbias_relu(int64_t* x_dim,
                     .setId('z')
                     .setAlignment(16)
                     .setDataType(dataType)
+                    .setByValue(true)
                     .build();
+        float zero_val = 0.f;
 
         generateStrides(y_dim, stride, 4, CUDNN_TENSOR_NHWC);
         auto afterReLUMaskTensor = cudnn_frontend::TensorBuilder()
@@ -803,12 +804,12 @@ run_conv_cscale_cbias_relu(int64_t* x_dim,
         if (workspace_size > 0) {
           workspace_ptr = workspace_tensor.data_ptr<float>();
         }
-        void* data_ptrs[] = {devPtrX, devPtrW, devPtrS, devPtrB, devPtrY, devPtrYMask};
-        int64_t uids[]    = {'x', 'w', 's', 'b', 'y', 'm'};
+        void* data_ptrs[] = {devPtrX, devPtrW, devPtrS, devPtrB, devPtrY, &zero_val, devPtrYMask};
+        int64_t uids[]    = {'x', 'w', 's', 'b', 'y', 'z', 'm'};
         auto variantPack  = cudnn_frontend::VariantPackBuilder()
           .setWorkspacePointer(workspace_ptr)
-          .setDataPointers(6, data_ptrs)
-          .setUids(6, uids)
+          .setDataPointers(7, data_ptrs)
+          .setUids(7, uids)
                    .build();
         DEBUG_CUDNN_MSG(log_buf, "variantPack " << variantPack.describe());
         cudnnStatus_t status = cudnnBackendExecute(handle_, plan.get_raw_desc(), variantPack.get_raw_desc());
@@ -1778,10 +1779,8 @@ std::vector<at::Tensor> conv_cscale_cbias_relu_forward(std::vector<at::Tensor> i
   at::Half* b = inputs[3].data_ptr<at::Half>();
   auto out = at::empty(y_dim, inputs[0].type(), output_format);
   at::Half* y = out.data_ptr<at::Half>();
-  auto out_mask = at::empty(y_dim, at::TensorOptions().dtype(at::kBool).layout(inputs[0].layout()).device(inputs[0].device()));
+  auto out_mask = at::empty(y_dim, at::TensorOptions().dtype(at::kBool).layout(inputs[0].layout()).device(inputs[0].device()), output_format);
   bool* y_mask = out_mask.data_ptr<bool>();
-  auto zero = at::zeros({1, 1, 1, 1}, at::TensorOptions().dtype(at::kHalf).layout(inputs[0].layout()).device(inputs[0].device()));
-  at::Half* z = zero.data_ptr<at::Half>();
 
   run_conv_cscale_cbias_relu(x_dim,
 		             w_dim,
@@ -1795,7 +1794,6 @@ std::vector<at::Tensor> conv_cscale_cbias_relu_forward(std::vector<at::Tensor> i
 			         s,
 		             b,
 		             y,
-                     z,
                      y_mask);
 
   outputs.push_back(out_mask);

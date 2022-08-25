@@ -114,7 +114,7 @@ class FusedDenseTest(unittest.TestCase):
         loss_.backward()
 
         self.assertTrue(torch.allclose(out, out_, atol=1e-1, rtol=1e-3, equal_nan=True))
-        self.assertTrue(torch.allclose(self.conv1_.weight.grad, self.conv1.weight.grad, atol=1e-3, rtol=1e-3, equal_nan=True))
+        self.assertTrue(torch.allclose(self.conv1_.weight.grad, self.conv1.weight.grad, atol=1e-2, rtol=1e-3, equal_nan=True))
         self.assertTrue(torch.allclose(self.x_.grad, self.x.grad, atol=1e-3, rtol=1e-3, equal_nan=True))
 
 
