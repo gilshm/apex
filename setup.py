@@ -774,6 +774,21 @@ if "--fused_conv_bias_relu" in sys.argv:
             )
         )
 
+        
+if "--conv_buf_alloc" in sys.argv:
+    sys.argv.remove("--conv_buf_alloc")
+    raise_if_cuda_home_none("--conv_buf_alloc")
+    if check_cudnn_version_and_warn("--conv_buf_alloc", 8400):
+        subprocess.run(["git", "submodule", "update", "--init", "apex/contrib/csrc/cudnn-frontend/"])
+        ext_modules.append(
+            CUDAExtension(
+                name="conv_buf_alloc",
+                sources=["apex/contrib/csrc/conv_buf_alloc/conv_buf_alloc.cpp"],
+                include_dirs=[os.path.join(this_dir, "apex/contrib/csrc/cudnn-frontend/include")],
+                extra_compile_args={"cxx": ["-O3"] + version_dependent_macros + generator_flag},
+            )
+        )
+
 
 setup(
     name="apex",
