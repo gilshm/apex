@@ -12,8 +12,8 @@ check_cudnn_version_and_warn(__name__, 8400)
 class ConvBufAlloc_(torch.autograd.Function):
     @staticmethod
     @torch.cuda.amp.custom_fwd(cast_inputs=torch.half)
-    def forward(ctx, x, weight, y, dx_buf, dw_buf, padding=0, stride=1):
-        outputs = conv_buf_alloc.forward([x, weight], y, padding, stride)
+    def forward(ctx, x, weight, dx_buf, dw_buf, padding=0, stride=1):
+        outputs = conv_buf_alloc.forward([x, weight], padding, stride)
         ctx.save_for_backward(x, weight, dx_buf, dw_buf)
         ctx.padding = padding
         ctx.stride = stride

@@ -531,7 +531,7 @@ run_dbias(int64_t* x_dim,
 
 
 std::vector<at::Tensor>
-conv_forward(std::vector<at::Tensor> inputs, at::Tensor output, int64_t padding, int64_t stride) {
+conv_forward(std::vector<at::Tensor> inputs, int64_t padding, int64_t stride) {
     std::cout << std::fixed;
 
     // Create output vector
@@ -567,6 +567,7 @@ conv_forward(std::vector<at::Tensor> inputs, at::Tensor output, int64_t padding,
     // Run
     at::Half* x = inputs[0].data_ptr<at::Half>();
     at::Half* w = inputs[1].data_ptr<at::Half>();
+    auto output = at::empty(y_dim, inputs[0].type(), output_format);
     at::Half* y = output.data_ptr<at::Half>();
 
     run_conv(x_dim,

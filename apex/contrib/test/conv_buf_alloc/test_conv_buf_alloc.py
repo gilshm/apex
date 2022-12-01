@@ -48,7 +48,6 @@ class FusedDenseTest(unittest.TestCase):
                                      stride=self.conv_stride, padding=self.conv_pad, bias=False).cuda().to(memory_format=torch.channels_last)
         self.conv1_ = copy.deepcopy(self.conv1)
 
-        self.conv1_y_buf = torch.zeros([self.batch_size, self.out_channels, self.out_height, self.out_width]).cuda().to(memory_format=torch.channels_last).half()
         self.conv1_dx_buf = torch.zeros_like(self.x).half()
         self.conv1_dw_buf = torch.zeros_like(self.conv1.weight).half()
 
@@ -61,7 +60,7 @@ class FusedDenseTest(unittest.TestCase):
     def test_conv_buf_alloc(self):
         with torch.cuda.amp.autocast(dtype=torch.half):
             out = ConvBufAlloc(self.x, self.conv1.weight,
-                               self.conv1_y_buf, self.conv1_dx_buf, self.conv1_dw_buf,
+                               self.conv1_dx_buf, self.conv1_dw_buf,
                                self.conv_pad, self.conv_stride)
             loss = (out.float()**2).sum() / out.numel()
         loss.backward()
@@ -71,7 +70,6 @@ class FusedDenseTest(unittest.TestCase):
             loss_ = (out_.float()**2).sum() / out_.numel()
         loss_.backward()
 
-        self.assertTrue(torch.allclose(out, self.conv1_y_buf, atol=1e-3, rtol=1e-3, equal_nan=True))
         self.assertTrue(torch.allclose(out_, out, atol=1e-3, rtol=1e-3, equal_nan=True))
         self.assertTrue(torch.allclose(self.conv1_.weight.grad, self.conv1.weight.grad, atol=1e-3, rtol=1e-3, equal_nan=True))
         self.assertTrue(torch.allclose(self.x_.grad, self.x.grad, atol=1e-3, rtol=1e-3, equal_nan=True))
