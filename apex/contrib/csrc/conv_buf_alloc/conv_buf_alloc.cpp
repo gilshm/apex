@@ -590,7 +590,7 @@ conv_forward(std::vector<at::Tensor> inputs, int64_t padding, int64_t stride) {
 
 
 std::vector<at::Tensor>
-conv_backward(std::vector<at::Tensor> inputs, std::vector<at::Tensor> outputs, int64_t padding, int64_t stride) {
+conv_backward(std::vector<at::Tensor> inputs, std::vector<at::Tensor> outputs, int64_t padding, int64_t stride, bool skip_wgrad) {
     bool requires_grad = inputs[0].requires_grad();
 
     for (int i = 0; i <= 2; i++) {
@@ -623,18 +623,21 @@ conv_backward(std::vector<at::Tensor> inputs, std::vector<at::Tensor> outputs, i
     at::Half* dy = inputs[2].data_ptr<at::Half>();
     at::Half* x = inputs[0].data_ptr<at::Half>();
     auto wgrad = outputs[1];
-    at::Half* dw = wgrad.data_ptr<at::Half>(); 
-    run_dconv(x_dim,
-            w_dim,
-            y_dim,
-            conv_pad,
-            conv_stride,
-            conv_dilation,
-            CUDNN_DATA_HALF,
-            x,
-            dw,
-            dy,
-            CUDNN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR);
+    at::Half* dw = wgrad.data_ptr<at::Half>();
+
+    if (!skip_wgrad) {
+        run_dconv(x_dim,
+                w_dim,
+                y_dim,
+                conv_pad,
+                conv_stride,
+                conv_dilation,
+                CUDNN_DATA_HALF,
+                x,
+                dw,
+                dy,
+                CUDNN_BACKEND_OPERATION_CONVOLUTION_BACKWARD_FILTER_DESCRIPTOR);
+    }
 
     // dgrad
     at::Half* w = inputs[1].data_ptr<at::Half>();

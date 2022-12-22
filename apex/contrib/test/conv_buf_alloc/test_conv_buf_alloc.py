@@ -61,7 +61,7 @@ class FusedDenseTest(unittest.TestCase):
         with torch.cuda.amp.autocast(dtype=torch.half):
             out = ConvBufAlloc(self.x, self.conv1.weight,
                                self.conv1_dx_buf, self.conv1_dw_buf,
-                               self.conv_pad, self.conv_stride)
+                               self.conv_pad, self.conv_stride, False)
             loss = (out.float()**2).sum() / out.numel()
         loss.backward()
 
